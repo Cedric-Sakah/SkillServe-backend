@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { connect } from "bun";
-
+import providerRoutes from './Routes/providerRoutes';
 const app = express();
 const PORT = process.env.PORT || 4000;
 import mongoose from "mongoose";
@@ -24,6 +24,7 @@ app.use(
 );
 
 app.use(express.json());
+app.use("/api/providers", providerRoutes);
 
 // Only ONE endpoint → matches frontend axios request
 app.get("/api/hello", (req, res) => {
