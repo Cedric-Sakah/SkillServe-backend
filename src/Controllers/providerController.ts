@@ -1,127 +1,108 @@
 import type { Request, Response } from "express";
 import { ProviderService } from "../Services/providerService";
+import { MongoServerError } from "mongodb";
+import type { IProvider } from "../Models/Provider";
 
-// Service instance used to perform provider-related business logic and data access.
-const providerService = new ProviderService();
-
-/**
- * Controller that handles HTTP requests for Provider resources.
- *
- * Each method maps to a standard RESTful operation and uses `providerService`
- * to perform the underlying work. Methods send appropriate HTTP status codes
- * and JSON responses for success and error cases.
- */
 export class ProviderController {
-  /**
-   * Create a new provider.
-   * - Expects provider data in the request body.
-   * - Returns `201 Created` with the created provider on success.
-   * - Returns `400 Bad Request` when creation fails (validation, bad input).
-   */
+  constructor(private providerService: ProviderService) {}
+
+  // Create a new provider
   async create(req: Request, res: Response) {
     try {
-      const provider = await providerService.createProvider(req.body);
+      const provider = await this.providerService.createProvider(req.body);
       res.status(201).json(provider);
-    } catch (error) {
-      // Surface the error message for client debugging (keep simple for now).
-      res.status(400).json({ message: (error as Error).message });
+    } catch (error: any) {
+      if (error.name === "ValidationError") {
+        return res.status(400).json({ message: "Invalid input data", details: error.errors });
+      }
+
+      if ((error as MongoServerError)?.code === 11000) {
+        return res.status(409).json({ message: "Provider with this email already exists" });
+      }
+
+      res.status(500).json({ message: "Internal server error" });
     }
   }
 
-  /**
-   * Retrieve all providers.
-   * - Returns `200 OK` with an array of providers.
-   * - Returns `500 Internal Server Error` on unexpected failures.
-   */
+  // Retrieve all providers with pagination and optional sorting
   async getAll(req: Request, res: Response) {
     try {
-      const providers = await providerService.getAllProviders();
-      res.json(providers);
+      const page = Math.max(parseInt(req.query.page as string) || 1, 1);
+      const limit = Math.max(parseInt(req.query.limit as string) || 10, 1);
+      const sortBy = (req.query.sortBy as string) || "createdAt";
+      const order = (req.query.order as string) === "desc" ? "desc" : "asc";
+
+      const result = await this.providerService.getAllProviders(
+        page,
+        limit,
+        sortBy as keyof IProvider,
+        order as "asc" | "desc"
+      );
+
+      const totalPages = Math.ceil(result.total / limit);
+
+      res.json({
+        data: result.data,
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages,
+      });
     } catch (error) {
-      res.status(500).json({ message: (error as Error).message });
+      res.status(500).json({ message: "Internal server error" });
     }
   }
 
-  /**
-   * Retrieve a provider by ID.
-   * - Expects `id` to be present in `req.params`.
-   * - Returns `400 Bad Request` when `id` is missing.
-   * - Returns `404 Not Found` when no provider matches the ID.
-   * - Returns `200 OK` with the provider when found.
-   */
+  // Retrieve a single provider by ID
   async getById(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      if (!id) return res.status(400).json({ message: "Provider ID is required" });
 
-      if (!id) {
-        return res.status(400).json({ message: "Provider ID is required" });
-      }
-
-      const provider = await providerService.getProviderById(id);
-
-      if (!provider) {
-        return res.status(404).json({ message: "Provider not found" });
-      }
+      const provider = await this.providerService.getProviderById(id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
 
       res.json(provider);
     } catch (error) {
-      res.status(500).json({ message: (error as Error).message });
+      res.status(500).json({ message: "Internal server error" });
     }
   }
 
-  /**
-   * Update an existing provider by ID.
-   * - Expects `id` in `req.params` and updated data in `req.body`.
-   * - Returns `400 Bad Request` when `id` is missing or update fails.
-   * - Returns `404 Not Found` when trying to update a non-existent provider.
-   * - Returns `200 OK` with the updated provider when successful.
-   */
+  // Update an existing provider
   async update(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      if (!id) return res.status(400).json({ message: "Provider ID is required" });
 
-      if (!id) {
-        return res.status(400).json({ message: "Provider ID is required" });
-      }
-
-      const provider = await providerService.updateProvider(id, req.body);
-
-      if (!provider) {
-        return res.status(404).json({ message: "Provider not found" });
-      }
+      const provider = await this.providerService.updateProvider(id, req.body);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
 
       res.json(provider);
-    } catch (error) {
-      // On update errors (validation or bad input) return 400.
-      res.status(400).json({ message: (error as Error).message });
+    } catch (error: any) {
+      if (error.name === "ValidationError") {
+        return res.status(400).json({ message: "Invalid input data", details: error.errors });
+      }
+
+      if ((error as MongoServerError)?.code === 11000) {
+        return res.status(409).json({ message: "Provider with this email already exists" });
+      }
+
+      res.status(500).json({ message: "Internal server error" });
     }
   }
 
-  /**
-   * Delete a provider by ID.
-   * - Expects `id` in `req.params`.
-   * - Returns `400 Bad Request` when `id` is missing.
-   * - Returns `404 Not Found` when provider doesn't exist.
-   * - Returns `204 No Content` on successful deletion.
-   */
+  // Delete a provider
   async delete(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      if (!id) return res.status(400).json({ message: "Provider ID is required" });
 
-      if (!id) {
-        return res.status(400).json({ message: "Provider ID is required" });
-      }
+      const provider = await this.providerService.deleteProvider(id);
+      if (!provider) return res.status(404).json({ message: "Provider not found" });
 
-      const provider = await providerService.deleteProvider(id);
-
-      if (!provider) {
-        return res.status(404).json({ message: "Provider not found" });
-      }
-
-      // Resource deleted successfully; no content returned.
       res.status(204).send();
     } catch (error) {
-      res.status(500).json({ message: (error as Error).message });
+      res.status(500).json({ message: "Internal server error" });
     }
   }
 }

@@ -1,32 +1,28 @@
 import { Router } from "express";
+import { ProviderService } from "../Services/providerService";
 import { ProviderController } from "../Controllers/providerController";
+import { validate } from "../Middlewares/validate";
+import { createProviderSchema, updateProviderSchema } from "../Middlewares/providerValidation";
 
-// Router instance for provider-related endpoints
 const router = Router();
 
-// Controller handles business logic and responses for provider routes
-const controller = new ProviderController();
+const providerService = new ProviderService();
+const controller = new ProviderController(providerService);
 
-// Create a new provider
-// POST /providers/
-router.post("/", controller.create.bind(controller));
+router.post(
+  "/",
+  validate(createProviderSchema),  
+  controller.create.bind(controller)
+);
 
-// Get a list of all providers
-// GET /providers/
+router.put(
+  "/:id",
+  validate(updateProviderSchema),  
+  controller.update.bind(controller)
+);
+
 router.get("/", controller.getAll.bind(controller));
-
-// Get a single provider by ID
-// GET /providers/:id
 router.get("/:id", controller.getById.bind(controller));
-
-// Update a provider by ID
-// PUT /providers/:id
-router.put("/:id", controller.update.bind(controller));
-
-// Delete a provider by ID
-// DELETE /providers/:id
 router.delete("/:id", controller.delete.bind(controller));
 
-// Export the configured router as the default export so it can be mounted
-// by the main application (e.g., `app.use('/providers', providerRoutes)`).
 export default router;
