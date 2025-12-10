@@ -9,17 +9,9 @@ const router = Router();
 const providerService = new ProviderService();
 const controller = new ProviderController(providerService);
 
-router.post(
-  "/",
-  validate(createProviderSchema),  
-  controller.create.bind(controller)
-);
+router.post("/", validate(createProviderSchema), controller.create.bind(controller));
 
-router.put(
-  "/:id",
-  validate(updateProviderSchema),  
-  controller.update.bind(controller)
-);
+router.put("/:id", validate(updateProviderSchema), controller.update.bind(controller));
 
 router.get("/", controller.getAll.bind(controller));
 router.get("/:id", controller.getById.bind(controller));

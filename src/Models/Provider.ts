@@ -3,7 +3,7 @@ import { Schema, model, Document } from "mongoose";
 export interface IProvider extends Document {
   name: string;
   email: string;
- 
+
   phone: string;
 
   serviceType: string;
@@ -11,7 +11,6 @@ export interface IProvider extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
-
 
 const providerSchema = new Schema<IProvider>(
   {
@@ -32,6 +31,5 @@ const providerSchema = new Schema<IProvider>(
   },
   { timestamps: true }
 );
-
 
 export const Provider = model<IProvider>("Provider", providerSchema);

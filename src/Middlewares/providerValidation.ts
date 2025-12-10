@@ -5,9 +5,7 @@ export const createProviderSchema = Joi.object({
   email: Joi.string().email().required(),
   phone: Joi.string().min(8).required(),
   serviceType: Joi.string().min(2).required(),
-  status: Joi.string()
-    .valid("active", "inactive")
-    .default("active"), 
+  status: Joi.string().valid("active", "inactive").default("active"),
 });
 
 export const updateProviderSchema = Joi.object({

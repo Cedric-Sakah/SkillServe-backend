@@ -35,10 +35,7 @@ export class ProviderService {
     return Provider.findById(id);
   }
 
-  async updateProvider(
-    id: string,
-    data: Partial<IProvider>
-  ): Promise<IProvider | null> {
+  async updateProvider(id: string, data: Partial<IProvider>): Promise<IProvider | null> {
     return Provider.findByIdAndUpdate(id, data, { new: true });
   }
 
